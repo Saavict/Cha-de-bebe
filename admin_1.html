@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Chá do José Leonardo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1a2a4a; --navy-mid: #3d5080;
+      --beige: #f5efe6; --beige-dark: #e8ddd0; --beige-mid: #d4c4b0;
+      --gold: #c9a96e; --gold-light: #e8d4a8; --white: #fefcf8;
+    }
+    body { font-family: 'Lato', sans-serif; background: var(--beige); min-height: 100vh; padding: 1.5rem 1rem 3rem; }
+    .app { max-width: 620px; margin: 0 auto; }
+
+    /* HEADER */
+    .admin-header {
+      background: var(--navy); border-radius: 18px; padding: 1.5rem;
+      margin-bottom: 1.2rem; display: flex; align-items: center; gap: 14px;
+      box-shadow: 0 4px 24px rgba(26,42,74,0.2);
+    }
+    .admin-bear { font-size: 38px; }
+    .admin-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold); }
+    .admin-sub { font-size: 12px; color: rgba(245,239,230,0.5); margin-top: 2px; }
+    .refresh-btn { margin-left: auto; padding: 8px 16px; background: rgba(255,255,255,0.08); border: 0.5px solid rgba(201,169,110,0.3); border-radius: 20px; color: var(--gold); font-size: 12px; font-family: 'Lato', sans-serif; cursor: pointer; transition: background 0.15s; }
+    .refresh-btn:hover { background: rgba(255,255,255,0.14); }
+
+    /* STATS */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin-bottom: 1rem; }
+    .stat-box { background: var(--navy); border-radius: 14px; padding: 1.1rem 0.5rem; text-align: center; box-shadow: 0 2px 12px rgba(26,42,74,0.15); }
+    .stat-number { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 600; color: var(--gold); display: block; }
+    .stat-label { font-size: 11px; color: var(--beige-dark); margin-top: 3px; opacity: 0.65; }
+
+    /* PROGRESS BAR */
+    .progress-card { background: var(--white); border-radius: 14px; padding: 1.2rem 1.5rem; margin-bottom: 1rem; border: 0.5px solid var(--beige-mid); }
+    .progress-label { font-size: 12px; font-weight: 700; color: var(--navy); margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .progress-bar { height: 10px; background: var(--beige-dark); border-radius: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--navy), var(--navy-mid)); border-radius: 10px; transition: width 0.6s ease; }
+
+    /* SECTION CARD */
+    .section-card { background: var(--white); border-radius: 18px; padding: 1.5rem; margin-bottom: 1rem; border: 0.5px solid var(--beige-mid); }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.2rem; }
+    .section-icon { width: 38px; height: 38px; background: var(--navy); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .section-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; color: var(--navy); }
+    .section-subtitle { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+    /* LIST CONTROLS */
+    .list-controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 160px; padding: 8px 14px; border: 1px solid var(--beige-mid); border-radius: 20px; font-size: 13px; outline: none; background: var(--beige); color: var(--navy); font-family: 'Lato', sans-serif; }
+    .filter-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--beige-mid); background: transparent; font-size: 12px; color: #aaa; cursor: pointer; font-family: 'Lato', sans-serif; transition: all 0.15s; }
+    .filter-btn.active { background: var(--navy); border-color: var(--navy); color: var(--gold); }
+
+    /* GUEST LIST */
+    .guest-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto; }
+    .guest-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px; border: 0.5px solid var(--beige-mid); background: var(--white); }
+    .guest-num { font-size: 11px; color: #ccc; font-weight: 700; width: 22px; text-align: right; flex-shrink: 0; }
+    .guest-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+    .guest-info { flex: 1; min-width: 0; }
+    .guest-name { font-size: 14px; font-weight: 700; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .guest-meta { font-size: 11px; color: #bbb; margin-top: 2px; }
+    .guest-tags { display: flex; gap: 4px; align-items: center; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+    .tag { padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+    .tag-confirmed { background: #e8f5e9; color: #2e7d32; }
+    .tag-diaper { background: var(--beige-dark); color: var(--navy); }
+    .tag-mimo { background: #ede7f6; color: #4527a0; }
+    .tag-nomimo { background: #fce4ec; color: #880e4f; }
+    .delete-btn { background: none; border: none; cursor: pointer; font-size: 15px; opacity: 0.3; transition: opacity 0.15s; padding: 4px; flex-shrink: 0; }
+    .delete-btn:hover { opacity: 0.8; }
+
+    /* DIAPER SUMMARY */
+    .diaper-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
+    .diaper-count-box { background: var(--beige); border: 0.5px solid var(--beige-mid); border-radius: 12px; padding: 1rem 0.4rem; text-align: center; }
+    .diaper-count-size { font-size: 13px; font-weight: 700; color: var(--navy); }
+    .diaper-count-num { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 600; color: var(--navy-mid); display: block; margin: 4px 0 2px; }
+    .diaper-count-label { font-size: 10px; color: #bbb; }
+    .mimo-summary { background: var(--beige); border-radius: 12px; padding: 1.1rem; text-align: center; border: 0.5px solid var(--beige-mid); }
+
+    /* EMPTY / LOADING */
+    .empty-state { text-align: center; padding: 2rem; color: #ccc; font-size: 14px; line-height: 1.8; }
+    .loading-state { text-align: center; padding: 1.5rem; color: #bbb; font-size: 13px; }
+
+    /* EXPORT BTN */
+    .export-btn { width: 100%; padding: 11px; background: transparent; border: 1.5px solid var(--navy); border-radius: 11px; color: var(--navy); font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; margin-top: 0.5rem; }
+    .export-btn:hover { background: var(--navy); color: var(--gold); }
+
+    .guest-list::-webkit-scrollbar { width: 4px; }
+    .guest-list::-webkit-scrollbar-track { background: var(--beige); border-radius: 4px; }
+    .guest-list::-webkit-scrollbar-thumb { background: var(--beige-mid); border-radius: 4px; }
+
+    .realtime-dot { width: 8px; height: 8px; background: #4caf50; border-radius: 50%; display: inline-block; margin-right: 5px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:0.3 } }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="admin-header">
+    <span class="admin-bear">🐻‍❄️</span>
+    <div>
+      <div class="admin-title">Painel Admin</div>
+      <div class="admin-sub"><span class="realtime-dot"></span>Chá de Bebê — José Leonardo</div>
+    </div>
+    <button class="refresh-btn" onclick="loadGuests()">↻ Atualizar</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <span class="stat-number" id="stat-confirmed">—</span>
+      <span class="stat-label">confirmados</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-number" id="stat-pending">—</span>
+      <span class="stat-label">pendentes</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-number">60</span>
+      <span class="stat-label">total convidados</span>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-card">
+    <div class="progress-label">
+      <span>Progresso de confirmações</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- LISTA DE CONVIDADOS -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">📋</div>
+      <div>
+        <div class="section-title">Lista de convidados</div>
+        <div class="section-subtitle" id="list-count">Carregando...</div>
+      </div>
+    </div>
+    <div class="list-controls">
+      <input class="search-input" id="search-input" placeholder="🔍 Buscar nome..." oninput="renderList()" />
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">Todos</button>
+      <button class="filter-btn" data-filter="mimo" onclick="setFilter('mimo',this)">🎁 Mimo</button>
+    </div>
+    <div class="guest-list" id="guest-list">
+      <div class="loading-state">⏳ Carregando...</div>
+    </div>
+    <button class="export-btn" onclick="exportCSV()">⬇ Exportar lista em CSV</button>
+  </div>
+
+  <!-- FRALDAS & MIMOS -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">🍼</div>
+      <div>
+        <div class="section-title">Fraldas & Mimos</div>
+        <div class="section-subtitle">Resumo do que vai chegar</div>
+      </div>
+    </div>
+    <div class="diaper-summary">
+      <div class="diaper-count-box">
+        <div class="diaper-count-size">P</div>
+        <span class="diaper-count-num" id="count-p">0</span>
+        <div class="diaper-count-label">pacotes</div>
+      </div>
+      <div class="diaper-count-box">
+        <div class="diaper-count-size">M</div>
+        <span class="diaper-count-num" id="count-m">0</span>
+        <div class="diaper-count-label">pacotes</div>
+      </div>
+      <div class="diaper-count-box">
+        <div class="diaper-count-size">G</div>
+        <span class="diaper-count-num" id="count-g">0</span>
+        <div class="diaper-count-label">pacotes</div>
+      </div>
+    </div>
+    <div class="mimo-summary">
+      <span style="font-size:12px;color:#aaa;">🎁 Mimos prometidos:</span>
+      <span id="mimo-count" style="font-size:28px;font-weight:700;color:var(--navy);margin-left:10px;font-family:'Playfair Display',serif;">0</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://fjoapdosjnhnhkmtvnej.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_EjmMWBhQ69qfaRMpHUdQSw_6f4g9X8P';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let guests = [];
+  let currentFilter = 'all';
+
+  async function loadGuests() {
+    const { data, error } = await db.from('guests').select('*').order('created_at', { ascending: false });
+    if (error) {
+      document.getElementById('guest-list').innerHTML = '<div class="empty-state">⚠️ Erro ao carregar dados.</div>';
+      return;
+    }
+    guests = data || [];
+    renderList();
+    updateStats();
+    updateDiaperCounts();
+  }
+
+  function subscribeRealtime() {
+    db.channel('admin-guests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guests' }, () => loadGuests())
+      .subscribe();
+  }
+
+  function renderList() {
+    const container = document.getElementById('guest-list');
+    const search = document.getElementById('search-input').value.toLowerCase();
+    const filtered = guests.filter(g => {
+      const matchSearch = g.name.toLowerCase().includes(search);
+      const matchFilter = currentFilter === 'all' || (currentFilter === 'mimo' && g.mimo);
+      return matchSearch && matchFilter;
+    });
+
+    document.getElementById('list-count').textContent = filtered.length + ' pessoa(s) listada(s)';
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-state">🐣 Nenhuma confirmação ainda</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map((g, i) => {
+      const initials = g.name.trim().split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+      const date = new Date(g.created_at).toLocaleDateString('pt-BR');
+      const time = new Date(g.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+      const diaperTag = g.diaper ? `<span class="tag tag-diaper">🍼 ${g.diaper}</span>` : '';
+      const mimoTag = g.mimo ? '<span class="tag tag-mimo">🎁 Mimo</span>' : '<span class="tag tag-nomimo">sem mimo</span>';
+      return `<div class="guest-item">
+        <span class="guest-num">${i+1}</span>
+        <div class="guest-avatar">${initials}</div>
+        <div class="guest-info">
+          <div class="guest-name">${g.name}</div>
+          <div class="guest-meta">${date} às ${time}</div>
+        </div>
+        <div class="guest-tags">
+          <span class="tag tag-confirmed">✅</span>
+          ${diaperTag}${mimoTag}
+        </div>
+        <button class="delete-btn" onclick="deleteGuest('${g.id}', '${g.name.replace(/'/g,"\\'")}')">🗑</button>
+      </div>`;
+    }).join('');
+  }
+
+  function updateStats() {
+    const confirmed = guests.filter(g => g.confirmed).length;
+    const pending = Math.max(0, 60 - confirmed);
+    const pct = Math.round((confirmed / 60) * 100);
+    document.getElementById('stat-confirmed').textContent = confirmed;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct + '%';
+  }
+
+  function updateDiaperCounts() {
+    const counts = { P: 0, M: 0, G: 0 };
+    guests.filter(g => g.confirmed && g.diaper).forEach(g => { if (counts[g.diaper] !== undefined) counts[g.diaper]++; });
+    document.getElementById('count-p').textContent = counts.P;
+    document.getElementById('count-m').textContent = counts.M;
+    document.getElementById('count-g').textContent = counts.G;
+    document.getElementById('mimo-count').textContent = guests.filter(g => g.mimo).length;
+  }
+
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+  }
+
+  async function deleteGuest(id, name) {
+    if (!confirm('Remover ' + name + ' da lista?')) return;
+    await db.from('guests').delete().eq('id', id);
+    await loadGuests();
+  }
+
+  function exportCSV() {
+    const rows = [['#','Nome','Fralda','Mimo','Data']];
+    guests.forEach((g, i) => {
+      const date = new Date(g.created_at).toLocaleDateString('pt-BR');
+      rows.push([i+1, g.name, g.diaper || '-', g.mimo ? 'Sim' : 'Não', date]);
+    });
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'convidados_jose_leonardo.csv';
+    a.click();
+  }
+
+  loadGuests();
+  subscribeRealtime();
+</script>
+</body>
+</html>
