@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chá de Bebê — José Leonardo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1a2a4a; --navy-mid: #3d5080;
+      --beige: #f5efe6; --beige-dark: #e8ddd0; --beige-mid: #d4c4b0;
+      --gold: #c9a96e; --gold-light: #e8d4a8; --white: #fefcf8;
+    }
+    body { font-family: 'Lato', sans-serif; background: var(--beige); min-height: 100vh; padding: 1.5rem 1rem 3rem; }
+    .app { max-width: 520px; margin: 0 auto; }
+
+    /* INVITE CARD */
+    .invite-card {
+      background: var(--navy); border-radius: 24px; padding: 2.5rem 2rem;
+      position: relative; overflow: hidden; margin-bottom: 1.5rem;
+      box-shadow: 0 8px 40px rgba(26,42,74,0.25);
+    }
+    .stars { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .star { position: absolute; background: var(--gold-light); border-radius: 50%; }
+    .bears-row { display: flex; justify-content: center; align-items: flex-end; gap: 0.4rem; margin-bottom: 1.5rem; }
+    .bear { font-size: 36px; animation: sway 3s ease-in-out infinite; display: inline-block; }
+    .bear.main { font-size: 50px; animation-delay: 0.5s; }
+    .bear.right { animation-delay: 1s; }
+    @keyframes sway { 0%,100%{ transform:rotate(-4deg) } 50%{ transform:rotate(4deg) } }
+    .invite-subtitle { text-align:center; font-size:11px; font-weight:700; letter-spacing:3px; color:var(--gold); text-transform:uppercase; margin-bottom:0.4rem; }
+    .invite-pretext { text-align:center; font-family:'Playfair Display',serif; font-style:italic; font-size:15px; color:var(--beige-dark); margin-bottom:0.2rem; }
+    .invite-name { text-align:center; font-family:'Playfair Display',serif; font-size:38px; font-weight:600; color:var(--gold); line-height:1.1; }
+    .invite-divider { width:60px; height:1px; background:var(--gold-light); margin:1rem auto; opacity:0.4; }
+    .invite-details { display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; margin:1.2rem 0; }
+    .detail-box { background:rgba(255,255,255,0.06); border-radius:12px; padding:0.9rem; text-align:center; border:0.5px solid rgba(201,169,110,0.2); }
+    .detail-box.full { grid-column:1/-1; }
+    .detail-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); display:block; margin-bottom:5px; }
+    .detail-value { font-size:13px; color:var(--beige-dark); line-height:1.5; }
+    .invite-footer { text-align:center; font-size:12px; color:rgba(245,239,230,0.35); margin-top:1.2rem; font-style:italic; }
+
+    /* FORM CARD */
+    .form-card { background:var(--white); border-radius:18px; padding:1.8rem 1.5rem; border:0.5px solid var(--beige-mid); box-shadow:0 2px 16px rgba(26,42,74,0.06); }
+    .form-header { display:flex; align-items:center; gap:12px; margin-bottom:1.4rem; }
+    .form-icon { width:40px; height:40px; background:var(--navy); border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+    .form-title { font-family:'Playfair Display',serif; font-size:18px; font-weight:600; color:var(--navy); }
+    .form-subtitle { font-size:12px; color:#aaa; margin-top:2px; }
+
+    .field { margin-bottom:1rem; }
+    .field-label { font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#bbb; margin-bottom:8px; display:block; }
+    .form-input { width:100%; padding:12px 14px; border:1.5px solid var(--beige-mid); border-radius:11px; font-family:'Lato',sans-serif; font-size:15px; color:var(--navy); background:var(--beige); outline:none; transition:border-color 0.2s, background 0.2s; }
+    .form-input:focus { border-color:var(--navy-mid); background:#fff; }
+
+    .diaper-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem; }
+    .diaper-btn { padding:12px 4px; border:1.5px solid var(--beige-mid); border-radius:11px; background:var(--beige); font-size:15px; font-weight:700; color:var(--navy); cursor:pointer; text-align:center; transition:all 0.15s; }
+    .diaper-btn.selected { background:var(--navy); border-color:var(--navy); color:var(--gold); }
+    .diaper-btn:hover:not(.selected) { border-color:var(--navy-mid); }
+
+    .mimo-toggle { display:flex; gap:0.6rem; }
+    .mimo-btn { flex:1; padding:12px; border:1.5px solid var(--beige-mid); border-radius:11px; background:var(--beige); font-size:13px; color:var(--navy); cursor:pointer; text-align:center; transition:all 0.15s; font-family:'Lato',sans-serif; }
+    .mimo-btn.yes { background:var(--navy); border-color:var(--navy); color:var(--gold); }
+    .mimo-btn.no { background:#fdecea; border-color:#c0392b; color:#c0392b; }
+
+    .confirm-btn { width:100%; margin-top:0.4rem; padding:15px; background:var(--navy); color:var(--gold); border:none; border-radius:12px; font-family:'Playfair Display',serif; font-size:17px; font-weight:600; cursor:pointer; letter-spacing:0.5px; transition:opacity 0.2s, transform 0.1s; }
+    .confirm-btn:hover { opacity:0.85; transform:scale(0.99); }
+    .confirm-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+    .success-msg { display:none; text-align:center; padding:2rem 1rem; }
+    .success-msg.show { display:block; }
+    .success-icon { font-size:56px; margin-bottom:1rem; }
+    .success-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--navy); margin-bottom:0.5rem; }
+    .success-sub { font-size:14px; color:#aaa; }
+
+    .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(100px); background:var(--navy); color:var(--gold); padding:13px 28px; border-radius:30px; font-size:14px; font-weight:700; transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1); z-index:999; pointer-events:none; white-space:nowrap; box-shadow:0 4px 24px rgba(26,42,74,0.3); }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="invite-card">
+    <div class="stars" id="stars-container"></div>
+    <div class="bears-row">
+      <span class="bear">🐻</span>
+      <span class="bear main">🐻‍❄️</span>
+      <span class="bear right">🐻</span>
+    </div>
+    <p class="invite-subtitle">Você está convidado para o</p>
+    <p class="invite-pretext">Chá de Bebê de</p>
+    <p class="invite-name">José Leonardo</p>
+    <div class="invite-divider"></div>
+    <div class="invite-details">
+      <div class="detail-box">
+        <span class="detail-label">📍 Endereço</span>
+        <span class="detail-value">R. Ana Ventura Nitão, 288<br>Ayrosa — Osasco / SP</span>
+      </div>
+      <div class="detail-box">
+        <span class="detail-label">🍼 Fralda</span>
+        <span class="detail-value">Traga uma embalagem:<br>P · M ou G</span>
+      </div>
+      <div class="detail-box full">
+        <span class="detail-label">🎁 Mimo</span>
+        <span class="detail-value">Um presentinho especial à sua escolha — opcional e muito bem-vindo 🤍</span>
+      </div>
+    </div>
+    <p class="invite-footer">Com amor, aguardamos sua presença 🤍</p>
+  </div>
+
+  <div class="form-card">
+    <div id="form-section">
+      <div class="form-header">
+        <div class="form-icon">🎀</div>
+        <div>
+          <div class="form-title">Confirmar presença</div>
+          <div class="form-subtitle">Preencha os campos e confirme!</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Seu nome completo</label>
+        <input class="form-input" id="guest-name" placeholder="Ex: Maria Silva" />
+      </div>
+
+      <div class="field">
+        <label class="field-label">Tamanho da fralda que vai trazer</label>
+        <div class="diaper-grid">
+          <div class="diaper-btn" data-size="P" onclick="selectDiaper(this)">P</div>
+          <div class="diaper-btn" data-size="M" onclick="selectDiaper(this)">M</div>
+          <div class="diaper-btn" data-size="G" onclick="selectDiaper(this)">G</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Vai trazer um mimo?</label>
+        <div class="mimo-toggle">
+          <button class="mimo-btn" id="mimo-yes" onclick="selectMimo(true)">🎁 Sim, vou trazer!</button>
+          <button class="mimo-btn" id="mimo-no" onclick="selectMimo(false)">Não desta vez</button>
+        </div>
+      </div>
+
+      <button class="confirm-btn" id="confirm-btn" onclick="confirmGuest()">✨ Confirmar presença</button>
+    </div>
+
+    <div class="success-msg" id="success-section">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Presença confirmada!</div>
+      <p class="success-sub">Estamos felizes em ter você no nosso chazinho.<br>Até lá! 🐻🤍</p>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  const SUPABASE_URL = 'https://fjoapdosjnhnhkmtvnej.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_EjmMWBhQ69qfaRMpHUdQSw_6f4g9X8P';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let selectedDiaper = '';
+  let selectedMimo = null;
+
+  function generateStars() {
+    const c = document.getElementById('stars-container');
+    for (let i = 0; i < 22; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      const sz = (Math.random() * 3 + 1).toFixed(1);
+      s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${sz}px;height:${sz}px;opacity:${(Math.random()*0.25+0.05).toFixed(2)}`;
+      c.appendChild(s);
+    }
+  }
+
+  function selectDiaper(el) {
+    document.querySelectorAll('.diaper-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedDiaper = el.dataset.size;
+  }
+
+  function selectMimo(val) {
+    selectedMimo = val;
+    document.getElementById('mimo-yes').classList.toggle('yes', val === true);
+    document.getElementById('mimo-no').classList.toggle('no', val === false);
+  }
+
+  async function confirmGuest() {
+    const nameInput = document.getElementById('guest-name');
+    const name = nameInput.value.trim();
+    if (!name) { showToast('✋ Digite seu nome!'); return; }
+    if (!selectedDiaper) { showToast('🍼 Escolha o tamanho da fralda!'); return; }
+    if (selectedMimo === null) { showToast('🎁 Vai trazer um mimo?'); return; }
+
+    const { data: existing } = await db.from('guests').select('id').ilike('name', name).single();
+    if (existing) { showToast('😊 ' + name.split(' ')[0] + ' já está confirmado!'); return; }
+
+    const btn = document.getElementById('confirm-btn');
+    btn.disabled = true; btn.textContent = 'Confirmando...';
+
+    const { error } = await db.from('guests').insert([{ name, diaper: selectedDiaper, mimo: selectedMimo, confirmed: true }]);
+
+    if (error) {
+      btn.disabled = false; btn.textContent = '✨ Confirmar presença';
+      showToast('❌ Erro ao confirmar. Tente novamente.'); return;
+    }
+
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('success-section').classList.add('show');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
+  generateStars();
+</script>
+</body>
+</html>
