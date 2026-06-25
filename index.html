@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#1a2a4a" />
+  <title>Chá de Bebê — José Leonardo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --navy: #1a2a4a; --navy-mid: #3d5080;
+      --beige: #f5efe6; --beige-dark: #e8ddd0; --beige-mid: #d4c4b0;
+      --gold: #c9a96e; --gold-light: #e8d4a8; --white: #fefcf8;
+    }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: 'Lato', sans-serif;
+      background: var(--beige);
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: env(safe-area-inset-top, 0) 0 calc(env(safe-area-inset-bottom, 0) + 2rem);
+      overscroll-behavior-y: none;
+    }
+
+    .app { max-width: 480px; margin: 0 auto; padding: 1.2rem 1rem 2rem; }
+
+    /* ── INVITE CARD ── */
+    .invite-card {
+      background: var(--navy); border-radius: 22px; padding: 2rem 1.5rem;
+      position: relative; overflow: hidden; margin-bottom: 1.2rem;
+      box-shadow: 0 8px 32px rgba(26,42,74,0.28);
+    }
+    .stars { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .star { position: absolute; background: var(--gold-light); border-radius: 50%; }
+    .bears-row { display: flex; justify-content: center; align-items: flex-end; gap: 0.3rem; margin-bottom: 1.3rem; }
+    .bear { font-size: 34px; animation: sway 3s ease-in-out infinite; display: inline-block; }
+    .bear.main { font-size: 46px; animation-delay: 0.5s; }
+    .bear.right { animation-delay: 1s; }
+    @keyframes sway { 0%,100%{ transform:rotate(-4deg) } 50%{ transform:rotate(4deg) } }
+
+    .invite-subtitle { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 2.5px; color: var(--gold); text-transform: uppercase; margin-bottom: 4px; }
+    .invite-pretext { text-align: center; font-family: 'Playfair Display', serif; font-style: italic; font-size: 14px; color: var(--beige-dark); margin-bottom: 2px; }
+    .invite-name { text-align: center; font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 600; color: var(--gold); line-height: 1.1; }
+
+    /* DATE BADGE */
+    .date-badge {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin: 1rem auto 0; padding: 10px 18px;
+      background: rgba(201,169,110,0.12); border: 1px solid rgba(201,169,110,0.35);
+      border-radius: 14px; max-width: fit-content;
+    }
+    .date-badge-item { text-align: center; }
+    .date-badge-num { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold); font-weight: 600; line-height: 1; }
+    .date-badge-label { font-size: 9px; color: var(--beige-dark); letter-spacing: 1px; text-transform: uppercase; opacity: 0.7; }
+    .date-badge-sep { width: 1px; height: 26px; background: rgba(201,169,110,0.3); }
+
+    .invite-divider { width: 50px; height: 1px; background: var(--gold-light); margin: 1rem auto; opacity: 0.4; }
+    .invite-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin: 1rem 0; }
+    .detail-box { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 0.85rem 0.7rem; text-align: center; border: 0.5px solid rgba(201,169,110,0.2); }
+    .detail-box.full { grid-column: 1 / -1; }
+    .detail-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 5px; }
+    .detail-value { font-size: 12px; color: var(--beige-dark); line-height: 1.55; }
+    .invite-footer { text-align: center; font-size: 11px; color: rgba(245,239,230,0.35); margin-top: 1rem; font-style: italic; }
+
+    /* ── FORM CARD ── */
+    .form-card { background: var(--white); border-radius: 18px; padding: 1.5rem 1.2rem; border: 0.5px solid var(--beige-mid); box-shadow: 0 2px 16px rgba(26,42,74,0.07); }
+    .form-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.3rem; }
+    .form-icon { width: 42px; height: 42px; background: var(--navy); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .form-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--navy); }
+    .form-subtitle { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+    .field { margin-bottom: 1.1rem; }
+    .field-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #bbb; margin-bottom: 8px; display: block; }
+
+    .form-input {
+      width: 100%; padding: 14px 16px; border: 1.5px solid var(--beige-mid); border-radius: 12px;
+      font-family: 'Lato', sans-serif; font-size: 16px; color: var(--navy); background: var(--beige);
+      outline: none; -webkit-appearance: none; appearance: none; transition: border-color 0.2s, background 0.2s;
+    }
+    .form-input:focus { border-color: var(--navy-mid); background: #fff; }
+
+    .diaper-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.6rem; }
+    .diaper-btn {
+      padding: 12px 4px 10px; border: 1.5px solid var(--beige-mid); border-radius: 12px; background: var(--beige);
+      cursor: pointer; text-align: center; transition: all 0.15s; -webkit-appearance: none;
+      min-height: 58px; touch-action: manipulation; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 2px;
+    }
+    .diaper-btn-label { font-size: 16px; font-weight: 700; color: var(--navy); }
+    .diaper-btn-count { font-size: 10px; color: #aaa; }
+    .diaper-btn.selected { background: var(--navy); border-color: var(--navy); }
+    .diaper-btn.selected .diaper-btn-label { color: var(--gold); }
+    .diaper-btn.selected .diaper-btn-count { color: var(--gold-light); }
+    .diaper-btn:active:not(.disabled) { transform: scale(0.96); }
+    .diaper-btn.disabled { opacity: 0.4; cursor: not-allowed; background: #eee; }
+    .diaper-btn.disabled .diaper-btn-count { color: #c0392b; font-weight: 700; }
+
+    .mimo-toggle { display: flex; gap: 0.6rem; }
+    .mimo-btn {
+      flex: 1; padding: 14px; border: 1.5px solid var(--beige-mid); border-radius: 12px; background: var(--beige);
+      font-size: 14px; color: var(--navy); cursor: pointer; text-align: center; font-family: 'Lato', sans-serif;
+      min-height: 52px; touch-action: manipulation; transition: all 0.15s;
+    }
+    .mimo-btn.yes { background: var(--navy); border-color: var(--navy); color: var(--gold); }
+    .mimo-btn.no { background: #fdecea; border-color: #c0392b; color: #c0392b; }
+    .mimo-btn:active { transform: scale(0.97); }
+
+    .confirm-btn {
+      width: 100%; margin-top: 0.4rem; padding: 17px; background: var(--navy); color: var(--gold);
+      border: none; border-radius: 14px; font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.5px; min-height: 56px; touch-action: manipulation;
+      -webkit-appearance: none; transition: opacity 0.2s, transform 0.1s;
+    }
+    .confirm-btn:active { transform: scale(0.98); opacity: 0.85; }
+    .confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .success-msg { display: none; text-align: center; padding: 2.5rem 1rem; }
+    .success-msg.show { display: block; }
+    .success-icon { font-size: 64px; margin-bottom: 1rem; }
+    .success-title { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--navy); margin-bottom: 0.5rem; }
+    .success-sub { font-size: 14px; color: #aaa; line-height: 1.6; }
+
+    .toast {
+      position: fixed; bottom: calc(env(safe-area-inset-bottom, 16px) + 16px); left: 50%;
+      transform: translateX(-50%) translateY(120px); background: var(--navy); color: var(--gold);
+      padding: 14px 28px; border-radius: 30px; font-size: 14px; font-weight: 700;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); z-index: 999; pointer-events: none;
+      white-space: nowrap; max-width: 90vw; box-shadow: 0 4px 24px rgba(26,42,74,0.3);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .loading-overlay { text-align: center; padding: 1rem; color: #bbb; font-size: 12px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="invite-card">
+    <div class="stars" id="stars-container"></div>
+    <div class="bears-row">
+      <span class="bear">🐻</span>
+      <span class="bear main">🐻‍❄️</span>
+      <span class="bear right">🐻</span>
+    </div>
+    <p class="invite-subtitle">Você está convidado para o</p>
+    <p class="invite-pretext">Chá de Bebê de</p>
+    <p class="invite-name">José Leonardo</p>
+
+    <div class="date-badge">
+      <div class="date-badge-item">
+        <div class="date-badge-num">16</div>
+        <div class="date-badge-label">Agosto</div>
+      </div>
+      <div class="date-badge-sep"></div>
+      <div class="date-badge-item">
+        <div class="date-badge-num">15:00</div>
+        <div class="date-badge-label">Horário</div>
+      </div>
+    </div>
+
+    <div class="invite-divider"></div>
+    <div class="invite-details">
+      <div class="detail-box">
+        <span class="detail-label">📍 Endereço</span>
+        <span class="detail-value">R. Ana Ventura Nitão, 288<br>Ayrosa — Osasco / SP</span>
+      </div>
+      <div class="detail-box">
+        <span class="detail-label">🍼 Fralda</span>
+        <span class="detail-value">Traga uma embalagem:<br>P · M ou G</span>
+      </div>
+      <div class="detail-box full">
+        <span class="detail-label">🎁 Mimo</span>
+        <span class="detail-value">Um presentinho à sua escolha — opcional e muito bem-vindo 🤍</span>
+      </div>
+    </div>
+    <p class="invite-footer">Com amor, aguardamos sua presença 🤍</p>
+  </div>
+
+  <div class="form-card">
+    <div id="form-section">
+      <div class="form-header">
+        <div class="form-icon">🎀</div>
+        <div>
+          <div class="form-title">Confirmar presença</div>
+          <div class="form-subtitle">Preencha e confirme!</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Seu nome completo</label>
+        <input
+          class="form-input" id="guest-name"
+          placeholder="Ex: Maria Silva"
+          type="text" autocomplete="name" autocorrect="off" spellcheck="false" enterkeyhint="next"
+        />
+      </div>
+
+      <div class="field">
+        <label class="field-label">Tamanho da fralda que vai trazer</label>
+        <div class="diaper-grid" id="diaper-grid">
+          <div class="diaper-btn" data-size="P" data-limit="13" onclick="selectDiaper(this)">
+            <span class="diaper-btn-label">P</span>
+            <span class="diaper-btn-count">carregando...</span>
+          </div>
+          <div class="diaper-btn" data-size="M" data-limit="25" onclick="selectDiaper(this)">
+            <span class="diaper-btn-label">M</span>
+            <span class="diaper-btn-count">carregando...</span>
+          </div>
+          <div class="diaper-btn" data-size="G" data-limit="12" onclick="selectDiaper(this)">
+            <span class="diaper-btn-label">G</span>
+            <span class="diaper-btn-count">carregando...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Vai trazer um mimo?</label>
+        <div class="mimo-toggle">
+          <button class="mimo-btn" id="mimo-yes" type="button" onclick="selectMimo(true)">🎁 Sim, vou trazer!</button>
+          <button class="mimo-btn" id="mimo-no" type="button" onclick="selectMimo(false)">Não desta vez</button>
+        </div>
+      </div>
+
+      <button class="confirm-btn" id="confirm-btn" type="button" onclick="confirmGuest()">
+        ✨ Confirmar presença
+      </button>
+    </div>
+
+    <div class="success-msg" id="success-section">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Presença confirmada!</div>
+      <p class="success-sub">Estamos felizes em ter você no nosso chazinho.<br>Até lá! 🐻🤍</p>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  const SUPABASE_URL = 'https://fjoapdosjnhnhkmtvnej.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_EjmMWBhQ69qfaRMpHUdQSw_6f4g9X8P';
+  const { createClient } = window.supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const DIAPER_LIMITS = { P: 13, M: 25, G: 12 };
+  let diaperCounts = { P: 0, M: 0, G: 0 };
+  let selectedDiaper = '';
+  let selectedMimo = null;
+
+  function generateStars() {
+    const c = document.getElementById('stars-container');
+    for (let i = 0; i < 18; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      const sz = (Math.random() * 3 + 1).toFixed(1);
+      s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${sz}px;height:${sz}px;opacity:${(Math.random()*0.2+0.05).toFixed(2)}`;
+      c.appendChild(s);
+    }
+  }
+
+  async function loadDiaperCounts() {
+    const { data, error } = await db.from('guests').select('diaper').eq('confirmed', true);
+    if (error) {
+      console.error(error);
+      document.querySelectorAll('.diaper-btn-count').forEach(el => el.textContent = '—');
+      return;
+    }
+    diaperCounts = { P: 0, M: 0, G: 0 };
+    (data || []).forEach(g => { if (diaperCounts[g.diaper] !== undefined) diaperCounts[g.diaper]++; });
+    renderDiaperButtons();
+  }
+
+  function renderDiaperButtons() {
+    document.querySelectorAll('.diaper-btn').forEach(btn => {
+      const size = btn.dataset.size;
+      const limit = DIAPER_LIMITS[size];
+      const count = diaperCounts[size] || 0;
+      const remaining = limit - count;
+      const countEl = btn.querySelector('.diaper-btn-count');
+
+      if (remaining <= 0) {
+        countEl.textContent = 'esgotado';
+        btn.classList.add('disabled');
+        btn.classList.remove('selected');
+        if (selectedDiaper === size) selectedDiaper = '';
+      } else {
+        countEl.textContent = remaining + ' restando';
+        btn.classList.remove('disabled');
+      }
+    });
+  }
+
+  function selectDiaper(el) {
+    if (el.classList.contains('disabled')) {
+      showToast('😕 Esse tamanho já atingiu o limite!');
+      return;
+    }
+    document.querySelectorAll('.diaper-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedDiaper = el.dataset.size;
+  }
+
+  function selectMimo(val) {
+    selectedMimo = val;
+    document.getElementById('mimo-yes').classList.toggle('yes', val === true);
+    document.getElementById('mimo-no').classList.toggle('no', val === false);
+  }
+
+  async function confirmGuest() {
+    const nameInput = document.getElementById('guest-name');
+    const name = nameInput.value.trim();
+
+    if (!name) { showToast('✋ Digite seu nome!'); nameInput.focus(); return; }
+    if (!selectedDiaper) { showToast('🍼 Escolha o tamanho da fralda!'); return; }
+    if (selectedMimo === null) { showToast('🎁 Vai trazer um mimo?'); return; }
+
+    const btn = document.getElementById('confirm-btn');
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+
+    try {
+      // Checar duplicado
+      const { data: existing } = await db
+        .from('guests').select('id').ilike('name', name).maybeSingle();
+
+      if (existing) {
+        showToast('😊 ' + name.split(' ')[0] + ' já está confirmado!');
+        btn.disabled = false; btn.textContent = '✨ Confirmar presença';
+        return;
+      }
+
+      // Revalidar limite de fralda em tempo real antes de salvar
+      await loadDiaperCounts();
+      const limit = DIAPER_LIMITS[selectedDiaper];
+      const count = diaperCounts[selectedDiaper] || 0;
+      if (count >= limit) {
+        showToast('😕 Esse tamanho acabou de esgotar! Escolha outro.');
+        btn.disabled = false; btn.textContent = '✨ Confirmar presença';
+        return;
+      }
+
+      btn.textContent = 'Confirmando...';
+
+      const { error } = await db.from('guests').insert([{
+        name, diaper: selectedDiaper, mimo: selectedMimo, confirmed: true
+      }]);
+
+      if (error) throw error;
+
+      document.getElementById('form-section').style.display = 'none';
+      document.getElementById('success-section').classList.add('show');
+
+    } catch (err) {
+      console.error(err);
+      showToast('❌ Erro ao confirmar. Tente novamente.');
+      btn.disabled = false;
+      btn.textContent = '✨ Confirmar presença';
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
+  function subscribeRealtimeCounts() {
+    db.channel('diaper-counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guests' }, () => loadDiaperCounts())
+      .subscribe();
+  }
+
+  generateStars();
+  loadDiaperCounts();
+  subscribeRealtimeCounts();
+</script>
+</body>
+</html>
